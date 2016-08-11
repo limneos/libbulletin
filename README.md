@@ -17,8 +17,9 @@ Show simple bulletin with custom sound:
     [[objc_getClass("JBBulletinManager") sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" overrideBundleImage:someUIImage soundPath:soundToPlay];
 
 
-That's it!
+<strong>That's it!</strong>
 
+Works across iOS 5 to 9.3.3.
 
 All methods:
 -----------
