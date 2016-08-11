@@ -72,25 +72,25 @@ static JBBulletinManager *sharedJB=NULL;
 
 -(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage bundleID:(NSString *)inBundleID soundPath:(NSString *)inSoundPath{
 
-	// This displays a title and message and the bundleID's image
+	// This displays a title and message and the bundleID's image and plays a sound from file
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:inBundleID hasSound:YES soundID:0 vibrateMode:0 soundPath:inSoundPath attachmentImage:NULL overrideBundleImage:NULL];
 }
 
 -(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage bundleID:(NSString *)inBundleID soundID:(int)inSoundID{
 
-	// This displays a title and message and the bundleID's image
+	// This displays a title and message and the bundleID's image and plays a sound from a SystemSoundID
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:inBundleID hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:NULL];
 }
 
 -(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage overrideBundleImage:(UIImage *)inOverridBundleImage soundPath:(NSString *)inSoundPath{
 
-	// This displays a title and message and the bundleID's image
+	// This displays a title and message and the overrides the bundleID's expected image with the bundleImage supplied and plays a sound from file
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:0 vibrateMode:0 soundPath:inSoundPath attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
 }
 
 -(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage overridBundleImage:(UIImage *)inOverridBundleImage soundID:(int)inSoundID{
 
-	// This displays a title and message and the bundleID's image
+	// This displays a title and message and the overrides the bundleID's expected image with the bundleImage supplied and plays a sound from a SystemSoundID
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
 }
 
