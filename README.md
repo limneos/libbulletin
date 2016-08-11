@@ -6,15 +6,15 @@ Usage:
 
 Show simple bulletin with bundle image:
 
-    [[JBBulletinManager sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" bundleID:@"com.name.id"];
+    [[objc_getClass("JBBulletinManager") sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" bundleID:@"com.name.id"];
 
 Show simple bulletin with <strong>custom</strong> bundle image:
 
-    [[JBBulletinManager sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" overrideBundleImage:someUIImage];
+    [[objc_getClass("JBBulletinManager") sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" overrideBundleImage:someUIImage];
 
 Show simple bulletin with custom sound:
 
-    [[JBBulletinManager sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" overrideBundleImage:someUIImage soundPath:soundToPlay];
+    [[objc_getClass("JBBulletinManager") sharedInstance] showBulletinWithTitle:@"Hey!" message:@"Come over!" overrideBundleImage:someUIImage soundPath:soundToPlay];
 
 
 That's it!
