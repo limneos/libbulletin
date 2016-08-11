@@ -1,7 +1,5 @@
 #include "imports.h"
-
-@interface JBBulletinManager : NSObject
-@end
+#include "JBBulletinManager.h"
 
 
 @implementation JBBulletinManager{
@@ -82,6 +80,18 @@ static JBBulletinManager *sharedJB=NULL;
 
 	// This displays a title and message and the bundleID's image
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:inBundleID hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:NULL];
+}
+
+-(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage overrideBundleImage:(UIImage *)inOverridBundleImage soundPath:(NSString *)inSoundPath{
+
+	// This displays a title and message and the bundleID's image
+	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:0 vibrateMode:0 soundPath:inSoundPath attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
+}
+
+-(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage overridBundleImage:(UIImage *)inOverridBundleImage soundID:(int)inSoundID{
+
+	// This displays a title and message and the bundleID's image
+	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
 }
 
 

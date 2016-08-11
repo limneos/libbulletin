@@ -3,7 +3,7 @@ Name: libbulletin
 Depends: mobilesubstrate
 Version: 0.0.1
 Architecture: iphoneos-arm
-Description: An awesome MobileSubstrate tweak!
+Description: Simple library that displays bulletins
 Maintainer: Elias Limneos
 Author: Elias Limneos
 Section: Tweaks
