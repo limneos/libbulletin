@@ -31,7 +31,7 @@ static JBBulletinManager *sharedJB=NULL;
 		}
 		_bundleImagesForIDs			= [[NSMutableArray alloc] init];
 		_cachedLockscreenBulletins 	= [[NSMutableArray alloc] init];
-		
+		sharedJB=self;
 	}
 	return self;
 
