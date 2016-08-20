@@ -278,7 +278,7 @@ static JBBulletinManager *sharedJB=NULL;
 	}
 	SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
 	BBObserver *observer=[lockScreenNotificationListController valueForKey:@"observer"];
-	[[[JBBulletinManager sharedInstance] cachedLockscreenBulletins] removeObject:inBulletin];
+	[[self cachedLockscreenBulletins] removeObject:inBulletin];
 	[lockScreenNotificationListController observer:observer removeBulletin:inBulletin];
 	
 }
