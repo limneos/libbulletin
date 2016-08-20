@@ -269,6 +269,31 @@ static JBBulletinManager *sharedJB=NULL;
 	
 	return request;
 }
+-(void)removeBulletinFromLockscreen:(id)inBulletin{
+	
+	// use the returned instance from -showBulletinWithTitle method 
+	if (![[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] isUILocked]){
+		return;
+		// removal is handled upon each unlock, so if the device is unlocked, we shoulnt't allow removing bulletins again
+	}
+	SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	BBObserver *observer=[lockScreenNotificationListController valueForKey:@"observer"];
+	[[[JBBulletinManager sharedInstance] cachedLockscreenBulletins] removeObject:inBulletin];
+	[lockScreenNotificationListController observer:observer removeBulletin:inBulletin];
+	
+}
+-(void)updateBulletinAtLockscreen:(id)inBulletin{
+
+	// use the returned instance from -showBulletinWithTitle method 	
+	if (![[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] isUILocked]){
+		return;
+		// you can only update bulletins at lockscreen , change title, message, content etc
+	}
+	SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	BBObserver *observer=[lockScreenNotificationListController valueForKey:@"observer"];
+	[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin];
+
+}
 @end
 
 
