@@ -21,7 +21,12 @@ static JBBulletinManager *sharedJB=NULL;
 	return sharedJB;
 
 }
+-(id)notificationController{
+	
+	SBLockScreenNotificationListController *lockScreenNotificationListController=([[objc_getClass("UIApplication") sharedApplication] respondsToSelector:@selector(notificationDispatcher)] && [[[objc_getClass("UIApplication") sharedApplication] notificationDispatcher] respondsToSelector:@selector(notificationSource)]) ? [[[objc_getClass("UIApplication") sharedApplication] notificationDispatcher] notificationSource]  : [[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	return lockScreenNotificationListController;
 
+}
 -(id)init{
 	
 	if (self=[super init]){
@@ -154,14 +159,29 @@ static JBBulletinManager *sharedJB=NULL;
 					SystemSoundID outSystemSoundID=0;
 					AudioServicesCreateSystemSoundID ( fileURL, &outSystemSoundID );
 					if (outSystemSoundID){
-						sound=[[objc_getClass("BBSound") alloc] initWithSystemSoundID:outSystemSoundID behavior:vibrate vibrationPattern: NULL];
+						if ([objc_getClass("BBSound") instancesRespondToSelector:@selector(initWithSystemSoundID:behavior:vibrationPattern:)]){
+							sound=[[objc_getClass("BBSound") alloc] initWithSystemSoundID:outSystemSoundID behavior:vibrate vibrationPattern: NULL];
+						}
+						else{
+							sound=[[objc_getClass("BBSound") alloc] init];
+							[sound setSystemSoundID:outSystemSoundID];
+							
+						}
 					}
 					AudioServicesDisposeSystemSoundID(outSystemSoundID);
 				}
 				[soundPath release];
 			}
 			else{
-				sound=[[objc_getClass("BBSound") alloc] initWithSystemSoundID:playID behavior:vibrate vibrationPattern: NULL];
+				if ([objc_getClass("BBSound") instancesRespondToSelector:@selector(initWithSystemSoundID:behavior:vibrationPattern:)]){
+					sound=[[objc_getClass("BBSound") alloc] initWithSystemSoundID:playID behavior:vibrate vibrationPattern: NULL];						
+				}
+				else{
+					sound=[[objc_getClass("BBSound") alloc] init];
+					[sound setSystemSoundID:playID];
+		
+				}
+
 			}
 			
 			
@@ -216,7 +236,8 @@ static JBBulletinManager *sharedJB=NULL;
 			
 			else{ //newer iOSes
 			
-				SBLockScreenNotificationListController *listController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+				//SBLockScreenNotificationListController *listController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+				SBLockScreenNotificationListController *listController=[self notificationController];
 				BBObserver *observer=[listController valueForKey:@"observer"];
 		 
 				if (attachmentImage){
@@ -276,7 +297,8 @@ static JBBulletinManager *sharedJB=NULL;
 		return;
 		// removal is handled upon each unlock, so if the device is unlocked, we shoulnt't allow removing bulletins again
 	}
-	SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	//SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	SBLockScreenNotificationListController *lockScreenNotificationListController=[self notificationController];
 	BBObserver *observer=[lockScreenNotificationListController valueForKey:@"observer"];
 	[[self cachedLockscreenBulletins] removeObject:inBulletin];
 	[lockScreenNotificationListController observer:observer removeBulletin:inBulletin];
@@ -289,9 +311,15 @@ static JBBulletinManager *sharedJB=NULL;
 		return;
 		// you can only update bulletins at lockscreen , change title, message, content etc
 	}
-	SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	//SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	SBLockScreenNotificationListController *lockScreenNotificationListController=[self notificationController];
 	BBObserver *observer=[lockScreenNotificationListController valueForKey:@"observer"];
-	[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin];
+	if ([lockScreenNotificationListController respondsToSelector:@selector(observer:modifyBulletin:)]){
+		[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin];
+	}
+	else  { //iOS10
+		[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin forFeed:8] ;
+	}
 
 }
 @end
@@ -321,7 +349,7 @@ static JBBulletinManager *sharedJB=NULL;
 }
 -(NSUInteger)messageNumberOfLines{
 
-	// for forching max number of lines to 4
+	// for forcing max number of lines to 4
 	
 	if ([[self publisherBulletinID] rangeOfString:@"-bulletin-manager"].location==0){
 		return 4;
@@ -387,7 +415,8 @@ static void screenChanged() {
 
 		[[[JBBulletinManager sharedInstance] bundleImagesForIDs] removeAllObjects];
 		
-		SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+		//SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+		SBLockScreenNotificationListController *lockScreenNotificationListController=[[JBBulletinManager sharedInstance] notificationController];
 		
 		for (int i=0; i< [[[JBBulletinManager sharedInstance] cachedLockscreenBulletins] count]; i++){
 			BBBulletin *bulletin=[[[JBBulletinManager sharedInstance] cachedLockscreenBulletins] objectAtIndex:i];
@@ -403,6 +432,6 @@ static void screenChanged() {
 }
 
 %ctor{
-
+	
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)&screenChanged, CFSTR("com.apple.springboard.screenchanged"), NULL, 0);
 }
