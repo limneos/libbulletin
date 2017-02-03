@@ -3,12 +3,29 @@
 #include "objc/runtime.h"
 #include "notify.h"
 
+
+@interface BBSectionIconVariant : NSObject
+-(void)setImageData:(NSData *)data;
+@end
+
+@interface BBSectionIcon : NSObject
+-(void)addVariant:(id)variant;
+@end
+
+
+
 @interface UIImage ()
 +(id)imageNamed:(id)named inBundle:(id)bundle;
 -(id)imageScaledToSize:(CGSize)size cornerRadius:(CGFloat)corenrasd;
 -(id)_imageScaledToProportion:(CGFloat)proportion interpolationQuality:(int)quality;
 -(id)imageResizedTo:(CGSize)size preserveAspectRatio:(BOOL)preserve;
 @end
+
+
+@interface BBAttachmentMetadata
+-(id)_initWithUUID:(id)arg1 type:(long long)arg2 URL:(id)arg3 ;
+@end
+
 
 @interface SBAwayController : NSObject
 +(id)sharedAwayController;
@@ -28,6 +45,20 @@
 @interface BBObserver: NSObject
 -(void)_setAttachmentImage:(id)image forKey:(id)akwy forBulletinID:(id)bullid;
 -(void)_setAttachmentSize:(CGSize)size forKey:(id)akwy forBulletinID:(id)bullid;
+@end
+
+
+@interface NCBulletinNotificationSource : NSObject
+-(BBObserver*)observer;
+@end
+
+@interface SBNCNotificationDispatcher : NSObject
+-(NCBulletinNotificationSource*)notificationSource;
+@end
+
+
+@interface UIApplication (ios10additions)
+-(SBNCNotificationDispatcher*)notificationDispatcher;
 @end
 
 @interface SBAwayBulletinListController : NSObject <BBObserverDelegate>
@@ -56,10 +87,21 @@
 +(id)actionWithLaunchURL:(NSURL*)aurl callblock:(id)ablock;
 @end
 
+
+@interface TLAlertConfiguration : NSObject
+-(id)initWithType:(long long)type;
+-(void)setExternalToneFileURL:(id)urla;
+@end
+
 @interface BBSound : NSObject
+-(void)setSoundType:(int)aye;
 -(id)initWithSystemSoundID:(int)systemSoundID behavior:(int)behavior vibrationPattern:(id)pattern;
 -(id)initWithSystemSoundPath:(id)arg1 behavior:(int)arg2 vibrationPattern:(id)arg3 ;
+-(void)setSystemSoundID:(int)systemSoundID;
+-(id)initWithToneAlert:(long long)toneAlert;
+-(id)initWithToneAlertConfiguration:(id)toneAlertConf;
 @end
+
 
 @interface BBAttachments : NSObject
 -(void)setPrimaryType:(int)atype;
@@ -100,6 +142,8 @@
 @property (nonatomic,retain) BBAttachments *attachments;
 @property (nonatomic,retain) NSString *recordID;
 @property (nonatomic,retain) NSString *publisherBulletinID;
+-(void)publish;
+-(void)setPrimaryAttachment:(BBAttachmentMetadata *)arg1 ;
 @end
  
 @interface BBBulletin : BBBulletinRequest
