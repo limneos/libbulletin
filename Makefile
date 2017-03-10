@@ -1,8 +1,8 @@
-include theos/makefiles/common.mk
+include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = libbulletin
-libbulletin_FILES = Tweak.xm
-libbulletin_FRAMEWORKS = AudioToolbox
+libbulletin_FILES = JBBulletinManager.m Tweak.xm
+libbulletin_FRAMEWORKS = AudioToolbox UIKit
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 after-install::
