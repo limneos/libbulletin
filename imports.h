@@ -148,3 +148,11 @@
  
 @interface BBBulletin : BBBulletinRequest
 @end
+
+@interface NCNotificationRequest : NSObject
+-(BBBulletin*)bulletin;
+@end
+
+@interface NCNotificationLongLookViewController : NSObject
+-(NCNotificationRequest*)notificationRequest;
+@end

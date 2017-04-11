@@ -1,3 +1,15 @@
+/*
+feeds:
+1 = NC
+2 = BANNER
+4 = MODAL ALERT
+8 = LOCKSCREEN
+16 = SOUND
+128 = CAR
+
+*/
+
+
 #include "imports.h"
 #include "JBBulletinManager.h"
 
@@ -8,6 +20,7 @@ static BOOL IOS10=NO;
 	NSMutableArray *_attachmentImagesForIDs;
 	NSMutableArray *_bundleImagesForIDs;
 	NSMutableArray *_cachedLockscreenBulletins;
+	int _nextBulletinDestination;
 
 }
 
@@ -16,7 +29,7 @@ static JBBulletinManager *sharedJB=NULL;
 +(id)sharedInstance{
 
 	if (!sharedJB){
-	
+		
 		sharedJB = [[self alloc] init];
 		
 	}
@@ -38,10 +51,18 @@ static JBBulletinManager *sharedJB=NULL;
 		}
 		_bundleImagesForIDs			= [[NSMutableArray alloc] init];
 		_cachedLockscreenBulletins 	= [[NSMutableArray alloc] init];
+		_nextBulletinDestination=0;
 		sharedJB=self;
 	}
 	return self;
 
+}
+
+-(void)setNextBulletinDestination:(int)destination{
+	_nextBulletinDestination=destination;
+}
+-(int)nextBulletinDestination{
+	return _nextBulletinDestination;
 }
 
 -(NSMutableArray *)cachedLockscreenBulletins{
@@ -114,6 +135,7 @@ static JBBulletinManager *sharedJB=NULL;
 	 
 	__block BBBulletinRequest *request=[[objc_getClass("BBBulletinRequest") alloc] init]; //init here so we can return it
 	
+	
 	 dispatch_async(dispatch_get_main_queue(),^{
 
 		 
@@ -125,18 +147,23 @@ static JBBulletinManager *sharedJB=NULL;
 		request.publisherBulletinID=[NSString stringWithFormat:@"-bulletin-manager-%@",[self newUUID]];
 		request.title=title;
 		request.message=message;
+
 		request.date=[NSDate date] ;
 		request.lastInterruptDate=[NSDate date] ;
 		[request setClearable:YES];
+ 
+	
+
 		if ([request respondsToSelector:@selector(setCategoryID:)]){
-			[request performSelector:@selector(setCategoryID:) withObject:@"CAT_INCOMING_MESSAGE"];
+			[request performSelector:@selector(setCategoryID:) withObject:IOS10 ? @"libbulletin" : @"CAT_INCOMING_MESSAGE"];
 		}
 		
 		
 		if (bundleID){
-			BBAction *defaultAction =[objc_getClass("BBAction") actionWithLaunchBundleID:bundleID callblock:nil];
+			BBAction *defaultAction = [objc_getClass("BBAction") actionWithLaunchBundleID:bundleID callblock:nil];
 			[request setDefaultAction:defaultAction];
 		}
+		 
 		
 		[title release];
 		[message release];
@@ -223,14 +250,15 @@ static JBBulletinManager *sharedJB=NULL;
 			}
 			 
 		}
-			
-		
+		 
+		 
+		 
 		BOOL locked = objc_getClass("SBAwayController")!=nil ? [[objc_getClass("SBAwayController") sharedAwayController] isLocked] : [[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] isUILocked];
 		
 		if (locked){ // locked, use SBLockScreenNotificationListController/SBAwayBulletinListController
-			
+		
 			if (objc_getClass("SBAwayBulletinListController")!=nil){  //older iOSes
-			
+		
 				SBAwayBulletinListController *listController=[[[objc_getClass("SBAwayController") sharedAwayController ] awayView] valueForKey:@"bulletinController"];
 				BBObserver *observer=[listController valueForKey:@"observer"];
 				if (attachmentImage){
@@ -242,14 +270,14 @@ static JBBulletinManager *sharedJB=NULL;
 				[_cachedLockscreenBulletins addObject:request];
 
 			}
-			
+		
 			else{ //newer iOSes
-			
+		
 				SBLockScreenNotificationListController *listController=[self notificationController];
 				BBObserver *observer=[listController valueForKey:@"observer"];
-		 		
+			
 				if (attachmentImage){
-					
+				
 					if ([observer respondsToSelector:@selector(_setAttachmentImage:forKey:forBulletinID:)]){
 						[observer _setAttachmentImage:[attachmentImage copy] forKey:@"SBAwayBulletinListAttachmentKey" forBulletinID:[request bulletinID]];
 					}
@@ -257,91 +285,91 @@ static JBBulletinManager *sharedJB=NULL;
 						// handle iOS 10 Case, store images for later hook
 						[_attachmentImagesForIDs addObject:[NSDictionary dictionaryWithObjectsAndKeys:[request bulletinID],@"bulletinID",attachmentImage,@"attachmentImage",NULL]];
 					}	
-					 
+				 
 				}
-			
+		
 				if ([objc_getClass("SBLockScreenNotificationListController") instancesRespondToSelector:@selector(observer:addBulletin:forFeed:playLightsAndSirens:withReply:)]){
 
-					[listController observer:observer addBulletin:request forFeed:IOS10 ? 27 : 8 playLightsAndSirens:1 withReply: NULL];
-					
+					[listController observer:observer addBulletin:request forFeed:_nextBulletinDestination == 0 ? 8|16  : _nextBulletinDestination playLightsAndSirens:YES withReply: NULL];
+				
 				}
 				else{
+			
+					[listController observer:observer addBulletin:request forFeed:IOS10 ? (_nextBulletinDestination == 0 ? 27|16 : _nextBulletinDestination) : 8];
 				
-					[listController observer:observer addBulletin:request forFeed:IOS10 ? 27 : 8];
-					
 				}
-				
+			
 				[_cachedLockscreenBulletins addObject:request];
-				
+			
 			}
 		}
 		else{ //not locked, use SBBulletinBannerController
-			
+		
 			if (IOS10){
-			
+		
 				SBLockScreenNotificationListController *listController=[self notificationController];
 				BBObserver *observer=[listController valueForKey:@"observer"];
-		 		
+			
 				if (attachmentImage){
 
-					if (!IOS10){
-						[observer _setAttachmentImage:[attachmentImage copy] forKey:@"SBAwayBulletinListAttachmentKey" forBulletinID:[request bulletinID]];
-					}
-					else{
-						[_attachmentImagesForIDs addObject:[NSDictionary dictionaryWithObjectsAndKeys:[request bulletinID],@"bulletinID",attachmentImage,@"attachmentImage",NULL]];
-
-					}
+					[_attachmentImagesForIDs addObject:[NSDictionary dictionaryWithObjectsAndKeys:[request bulletinID],@"bulletinID",attachmentImage,@"attachmentImage",NULL]];
 
 				}
-			
+		
 				if ([objc_getClass("SBLockScreenNotificationListController") instancesRespondToSelector:@selector(observer:addBulletin:forFeed:playLightsAndSirens:withReply:)]){
 
-					[listController observer:observer addBulletin:request forFeed:IOS10 ? 27 : 8 playLightsAndSirens:1 withReply: NULL];
-					
+						[listController observer:observer addBulletin:request forFeed:IOS10 ? (_nextBulletinDestination == 0 ? 27|16 : _nextBulletinDestination) : 8 playLightsAndSirens:YES withReply: NULL];
+
+				
 				}
 				else{
+
+					[listController observer:observer addBulletin:request forFeed:IOS10 ? (_nextBulletinDestination == 0 ? 27|16 : _nextBulletinDestination) : 8];
 				
-					[listController observer:observer addBulletin:request forFeed:IOS10 ? 27 : 8];
-					
 				}
-				
+			
 				[_cachedLockscreenBulletins addObject:request];
-	 
+ 
 			}
 			else{
-			
+		
 				BBObserver *observer=[[objc_getClass("SBBulletinBannerController") sharedInstance] valueForKey:@"observer"];
-			
+		
 				if (attachmentImage){
+			
 				
-					if (!IOS10){
-						[observer _setAttachmentImage:[attachmentImage copy] forKey:@"kBBObserverBulletinAttachmentDefaultKey" forBulletinID:[request bulletinID]];
-					}
-					if (objc_getClass("SBAwayController")!=nil || IOS10){
-					
+					[observer _setAttachmentImage:[attachmentImage copy] forKey:@"kBBObserverBulletinAttachmentDefaultKey" forBulletinID:[request bulletinID]];
+				
+					if (objc_getClass("SBAwayController")!=nil){
+				
 						[_attachmentImagesForIDs addObject:[NSDictionary dictionaryWithObjectsAndKeys:[request bulletinID],@"bulletinID",attachmentImage,@"attachmentImage",NULL]];
 
 					}
-			
+		
 				}
-			
+		
 				if ([objc_getClass("SBBulletinBannerController") instancesRespondToSelector:@selector(observer:addBulletin:forFeed:playLightsAndSirens:withReply:)]){
-					[[objc_getClass("SBBulletinBannerController") sharedInstance] observer:observer addBulletin:request forFeed:2 playLightsAndSirens: 1 withReply: NULL];
+
+						[[objc_getClass("SBBulletinBannerController") sharedInstance] observer:observer addBulletin:request forFeed:2 playLightsAndSirens:YES withReply: NULL];
+
 				}
 				else{
-				
+
 					[[objc_getClass("SBBulletinBannerController") sharedInstance] observer:observer addBulletin:request forFeed:2];
+
 				}
 				// no need to remove the bulletin from the observer, SBBulletinBannerController's BBObserver removes it itself upon display
 			}
 		}
 
 		[attachmentImage release];
-		
+		 
+		_nextBulletinDestination=0;
 	});
 	
 	return request;
 }
+ 
 -(void)removeBulletinFromLockscreen:(id)inBulletin{
 	
 	// use the returned instance from -showBulletinWithTitle method 
@@ -371,6 +399,24 @@ static JBBulletinManager *sharedJB=NULL;
 	}
 	else  { //iOS10
 		[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin forFeed:8] ;
+	}
+
+}
+-(void)updateBulletinAtNotificationCenter:(id)inBulletin{
+
+	// use the returned instance from -showBulletinWithTitle method 	
+	if (![[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] isUILocked]){
+		return;
+		// you can only update bulletins at lockscreen , change title, message, content etc
+	}
+	//SBLockScreenNotificationListController *lockScreenNotificationListController=[[[objc_getClass("SBLockScreenManager") sharedInstanceIfExists] lockScreenViewController] valueForKey:@"notificationController"];
+	SBLockScreenNotificationListController *lockScreenNotificationListController=[self notificationController];
+	BBObserver *observer=[lockScreenNotificationListController valueForKey:@"observer"];
+	if ([lockScreenNotificationListController respondsToSelector:@selector(observer:modifyBulletin:)]){
+		[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin];
+	}
+	else  { //iOS10
+		[lockScreenNotificationListController observer:observer modifyBulletin:inBulletin forFeed:1] ;
 	}
 
 }
@@ -499,7 +545,48 @@ static JBBulletinManager *sharedJB=NULL;
 	return %orig;
 }
 %end
+
+
+%group ios10
+%hook NCNotificationLongLookViewController
+-(void)_handleCloseButton:(id)arg1{
+
+	%orig;
+	if ([self respondsToSelector:@selector(notificationRequest)] && [[self notificationRequest] respondsToSelector:@selector(bulletin)]){
+
+		if ([[[[self notificationRequest] bulletin] publisherBulletinID] rangeOfString:@"-bulletin-manager"].location!=NSNotFound){
+			[[objc_getClass("JBBulletinManager") sharedInstance ] removeBulletinFromLockscreen:[[self notificationRequest] bulletin]];
+		}
+		
+	}
+}
+%end
+
+
+%hook NCNotificationPriorityListViewController
  
+-(void)notificationListCell:(id)arg1 requestsClearingNotificationRequest:(NCNotificationRequest *)arg2 {
+
+	%orig;
+	if ([arg2 respondsToSelector:@selector(bulletin)]){
+		if ([[[arg2 bulletin] publisherBulletinID] rangeOfString:@"-bulletin-manager"].location!=NSNotFound){
+			[[objc_getClass("JBBulletinManager") sharedInstance ] removeBulletinFromLockscreen:[arg2 bulletin]];
+		}
+	}
+}
+ 
+-(void)notificationListCell:(id)arg1 requestsPerformAction:(id)arg2 forNotificationRequest:(NCNotificationRequest *)arg3 completion:(/*^block*/id)arg4{
+
+	%orig;
+	if ([arg3 respondsToSelector:@selector(bulletin)]){
+		if ([[[arg3 bulletin] publisherBulletinID] rangeOfString:@"-bulletin-manager"].location!=NSNotFound){
+			[[objc_getClass("JBBulletinManager") sharedInstance ] removeBulletinFromLockscreen:[arg2 bulletin]];
+		}
+	}
+}
+%end
+%end
+
 
 static void screenChanged() {
 	
@@ -536,10 +623,11 @@ static void screenChanged() {
 	}
 }
 
-
-
 %ctor{
-
+	%init;
 	IOS10=[[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 10."].location!=NSNotFound;
+	if (IOS10){
+		%init(ios10);
+	}
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)&screenChanged, CFSTR("com.apple.springboard.screenchanged"), NULL, 0);
 }
