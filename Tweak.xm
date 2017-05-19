@@ -122,13 +122,19 @@ static JBBulletinManager *sharedJB=NULL;
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
 }
 
+-(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage overrideBundleImage:(UIImage *)inOverridBundleImage soundID:(int)inSoundID{
+
+	// This displays a title and message and the overrides the bundleID's expected image with the bundleImage supplied and plays a sound from a SystemSoundID
+	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
+}
+
 
 -(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage bundleID:(NSString *)inBundleID hasSound:(BOOL)hasSound soundID:(int)soundID vibrateMode:(int)vibrate soundPath:(NSString *)inSoundPath attachmentImage:(UIImage *)inAttachmentImage overrideBundleImage:(UIImage *)inOverrideBundleImage{
 	
 	__block NSString *title=[inTitle retain];
 	__block NSString *message=[inMessage retain];
 	__block NSString *soundPath=[inSoundPath retain];
-	__block NSString *bundleID=[inBundleID retain];
+	__block NSString *bundleID=inBundleID ? [inBundleID retain] : [@"com.something.anything" retain];
 	__block UIImage *attachmentImage=[inAttachmentImage retain];
 	__block UIImage *overrideBundleImage=[inOverrideBundleImage retain];
 
@@ -471,7 +477,7 @@ static JBBulletinManager *sharedJB=NULL;
 	return %orig;
 }
 -(UIImage *)sectionIconImageWithFormat:(int)aformat{
-
+	 
 	//for forcing custom bundle (icon) images	
 	
 	if ([[self publisherBulletinID] rangeOfString:@"-bulletin-manager"].location==0){
@@ -503,7 +509,7 @@ static JBBulletinManager *sharedJB=NULL;
 	return %orig;
 }
 -(BBSectionIcon *)sectionIcon{
-
+ 
 	//for forcing custom bundle (icon) images on iOS 10
 	
 	if (!IOS10){
@@ -534,10 +540,12 @@ static JBBulletinManager *sharedJB=NULL;
 				}
 
 			}
+		
 			BBSectionIconVariant *variant = [[objc_getClass("BBSectionIconVariant") alloc] init];
 			[variant setImageData:UIImagePNGRepresentation(customImage)];
 			BBSectionIcon *icon=[[objc_getClass("BBSectionIcon") alloc] init];
 			[icon addVariant:variant];
+			
 			return icon;
 		}
 	}
