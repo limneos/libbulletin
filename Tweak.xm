@@ -584,11 +584,11 @@ static JBBulletinManager *sharedJB=NULL;
 }
  
 -(void)notificationListCell:(id)arg1 requestsPerformAction:(id)arg2 forNotificationRequest:(NCNotificationRequest *)arg3 completion:(/*^block*/id)arg4{
-
+	 
 	%orig;
 	if ([arg3 respondsToSelector:@selector(bulletin)]){
 		if ([[[arg3 bulletin] publisherBulletinID] rangeOfString:@"-bulletin-manager"].location!=NSNotFound){
-			[[objc_getClass("JBBulletinManager") sharedInstance ] removeBulletinFromLockscreen:[arg2 bulletin]];
+			[[objc_getClass("JBBulletinManager") sharedInstance ] removeBulletinFromLockscreen:[arg3 bulletin]];
 		}
 	}
 }
