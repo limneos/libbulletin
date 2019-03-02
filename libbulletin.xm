@@ -12,8 +12,54 @@ feeds:
 
 #include "imports.h"
 #include "JBBulletinManager.h"
+#include <mach-o/dyld.h>
+
+@interface SBLockScreenUnlockRequest : NSObject
+-(void)setDestinationApplication:(id)arg1;
+-(void)setWantsBiometricPresentation:(BOOL)arg1;
+-(BOOL)wantsBiometricPresentation;
+-(void)setProcess:(id)arg1;
+-(void)setName:(NSString *)arg1;
+-(void)setSource:(int)arg1;
+-(void)setIntent:(int)arg1;
+@end
+
+void mylog(const char *sdf){
+	
+	static const char mon_name[][4] = {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+    char timestr[256];
+    
+    time_t rawtime;
+    struct tm * timeptr;
+
+    time ( &rawtime );
+    timeptr = localtime ( &rawtime );
+                
+	FILE *p=fopen("/tmp/syslog","a");
+
+	if (p){
+
+		sprintf(timestr, "%.3s %d %.2d:%.2d:%.2d %s[%d]",
+
+            mon_name[timeptr->tm_mon],
+            timeptr->tm_mday, timeptr->tm_hour,
+            timeptr->tm_min, timeptr->tm_sec,getprogname(),getpid());
+    
+		char logtxt[strlen(sdf)+strlen(timestr)+4];
+		sprintf(logtxt,"%s %s\n",timestr,sdf);
+		fwrite(logtxt,strlen(logtxt),1,p);
+		fclose(p);
+	}
+
+}
+
+#define NSLog(...) mylog([[NSString stringWithFormat:__VA_ARGS__] UTF8String])
 
 static BOOL IOS10=NO;
+static BOOL IOS11=NO;
 
 @implementation JBBulletinManager{
 
@@ -127,7 +173,48 @@ static JBBulletinManager *sharedJB=NULL;
 	// This displays a title and message and the overrides the bundleID's expected image with the bundleImage supplied and plays a sound from a SystemSoundID
 	return [self showBulletinWithTitle:inTitle message:inMessage bundleID:NULL hasSound:YES soundID:inSoundID vibrateMode:0 soundPath:NULL attachmentImage:NULL overrideBundleImage:inOverridBundleImage];
 }
+-(id)bulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage bundleID:(NSString *)inBundleID{
+	
+	__block NSString *title=[inTitle retain];
+	__block NSString *message=[inMessage retain];
+	__block NSString *bundleID=inBundleID ? [inBundleID retain] : [@"com.something.anything" retain];
 
+	 
+	BBBulletin *request=[[objc_getClass("BBBulletin") alloc] init]; //init here so we can return it
+	
+	
+	request.section=bundleID;
+	request.sectionID=bundleID;
+	request.bulletinID=[self newUUID];
+	request.bulletinVersionID=[self newUUID];
+	request.recordID=[self newUUID];
+	request.publisherBulletinID=[NSString stringWithFormat:@"-bulletin-manager-%@",[self newUUID]];
+	request.title=title;
+	request.message=message;
+
+	request.date=[NSDate date] ;
+	request.lastInterruptDate=[NSDate date] ;
+	[request setClearable:YES];
+
+
+
+	if ([request respondsToSelector:@selector(setCategoryID:)]){
+		[request performSelector:@selector(setCategoryID:) withObject:IOS10 ? @"libbulletin" : @"CAT_INCOMING_MESSAGE"];
+	}
+	
+	
+	if (bundleID){
+		BBAction *defaultAction = [objc_getClass("BBAction") actionWithLaunchBundleID:bundleID callblock:nil];
+		[request setDefaultAction:defaultAction];
+	}
+	 
+	
+	[title release];
+	[message release];
+	[bundleID release];
+	return request;
+
+}
 
 -(id)showBulletinWithTitle:(NSString *)inTitle message:(NSString *)inMessage bundleID:(NSString *)inBundleID hasSound:(BOOL)hasSound soundID:(int)soundID vibrateMode:(int)vibrate soundPath:(NSString *)inSoundPath attachmentImage:(UIImage *)inAttachmentImage overrideBundleImage:(UIImage *)inOverrideBundleImage{
 	
@@ -139,7 +226,7 @@ static JBBulletinManager *sharedJB=NULL;
 	__block UIImage *overrideBundleImage=[inOverrideBundleImage retain];
 
 	 
-	__block BBBulletinRequest *request=[[objc_getClass("BBBulletinRequest") alloc] init]; //init here so we can return it
+	__block BBBulletinRequest *request=[[objc_getClass("BBBulletin") alloc] init]; //init here so we can return it
 	
 	
 	 dispatch_async(dispatch_get_main_queue(),^{
@@ -166,8 +253,35 @@ static JBBulletinManager *sharedJB=NULL;
 		
 		
 		if (bundleID){
-			BBAction *defaultAction = [objc_getClass("BBAction") actionWithLaunchBundleID:bundleID callblock:nil];
-			[request setDefaultAction:defaultAction];
+			if (IOS11){
+				BBAction *defaultAction = [objc_getClass("BBAction") actionWithIdentifier:@"com.apple.UNNotificationDefaultActionIdentifier"];
+				
+				[defaultAction setIdentifier:@"com.apple.UNNotificationDefaultActionIdentifier"];
+				[request setDefaultAction:defaultAction];
+				[defaultAction  setActionType:1];
+				[defaultAction  setLaunchURL:NULL];
+				[defaultAction  setLaunchBundleID:NULL];
+				[defaultAction  setLaunchCanBypassPinLock:0];
+				[defaultAction  setActivatePluginName:NULL];
+				[defaultAction  setActivatePluginContext:NULL];
+				[defaultAction  setRemoteViewControllerClassName:NULL];
+				[defaultAction  setRemoteServiceBundleIdentifier:NULL];
+				[defaultAction  setActivationMode:0];
+				[defaultAction  setBehavior:0];
+				[defaultAction  setBehaviorParameters:NULL];
+				[defaultAction  setAuthenticationRequired:0];
+				[defaultAction  setShouldDismissBulletin:1];
+
+			}
+			else if (IOS10){
+				BBAction *defaultAction = [objc_getClass("BBAction") actionWithLaunchBundleID:bundleID callblock:^{}];
+				[request setDefaultAction:defaultAction];
+
+			}
+			else{
+				BBAction *defaultAction = [objc_getClass("BBAction") actionWithLaunchBundleID:bundleID callblock:^{}];
+				[request setDefaultAction:defaultAction];
+			}
 		}
 		 
 		
@@ -215,9 +329,14 @@ static JBBulletinManager *sharedJB=NULL;
 					sound=[[objc_getClass("BBSound") alloc] initWithSystemSoundID:playID behavior:vibrate vibrationPattern: NULL];						
 				}
 				else{
-					sound=[[objc_getClass("BBSound") alloc] init];
-					[sound setSoundType:0];
-					[sound setSystemSoundID:playID];
+					if (IOS11){
+						[[UIDevice currentDevice] _playSystemSound:playID];
+					}
+					else{
+						sound=[[objc_getClass("BBSound") alloc] init];
+						[sound setSoundType:0];
+						[sound setSystemSoundID:playID];
+					}
 				}
 
 			}
@@ -430,8 +549,65 @@ static JBBulletinManager *sharedJB=NULL;
 
  
 
+%group bb
 
-%hook BBBulletinRequest
+
+
+%hook BBBulletin
+ 
+
+-(id)responseForAction:(id)arg1{
+
+	id x= %orig;
+	// handle actions for iOS 10 / IOS 11
+	if ([[self publisherBulletinID] rangeOfString:@"-bulletin-manager"].location==0 && IOS10 ){
+	
+	
+		if ([arg1 actionType]==8 || [arg1 actionType]==0 ){
+			[[objc_getClass("JBBulletinManager") sharedInstance ] removeBulletinFromLockscreen:self];
+		}
+		if ([arg1 actionType]==1){
+		 
+			if ([[objc_getClass("SBLockScreenManager") sharedInstance] isUILocked]){
+				
+				
+				SBLockScreenUnlockRequest *request=[[objc_getClass("SBLockScreenUnlockRequest") alloc] init];
+				if ([request respondsToSelector:@selector(setSource:)]){
+					[request setSource:16];
+				}
+				if ([request respondsToSelector:@selector(setIntent:)]){
+					[request setIntent:3];
+				}
+				if ([request respondsToSelector:@selector(setName:)]){
+					[request setName:[NSString stringWithFormat:@"SBWorkspaceRequest: Open \"%@\"",[self section]]];
+				}
+				if ([request respondsToSelector:@selector(setProcess:)]){
+					[request setProcess:NULL];
+				}
+				if ([request respondsToSelector:@selector(setDestinationApplication:)]){
+					[request setDestinationApplication:[[objc_getClass("SBApplicationController") sharedInstance] applicationWithBundleIdentifier:[self section]]];
+				}
+				if ([request respondsToSelector:@selector(setWantsBiometricPresentation:)]){
+					[request setWantsBiometricPresentation:YES];
+				}
+				if ([[objc_getClass("SBLockScreenManager") sharedInstance] respondsToSelector:@selector(unlockWithRequest:completion:)]){
+					[[objc_getClass("SBLockScreenManager") sharedInstance] unlockWithRequest:request completion:^(BOOL completed){
+						if (completed){
+							[[UIApplication sharedApplication] launchApplicationWithIdentifier:[self section] suspended:NO];
+						}
+				
+					}];
+				}
+			}
+			else{
+				[[UIApplication sharedApplication] launchApplicationWithIdentifier:[self section] suspended:NO];
+			}
+
+		}
+		
+	}
+	return x;
+}
 -(id)composedAttachmentImageWithObserver:(id)observer{
 
 	// handle attachments for iOS 10
@@ -442,6 +618,7 @@ static JBBulletinManager *sharedJB=NULL;
 			if ([[dict objectForKey:@"bulletinID"] isEqual:[self bulletinID]]){
 				[[[JBBulletinManager sharedInstance] attachmentImagesForIDs] removeObject:dict];
 				return [dict objectForKey:@"attachmentImage"];
+
 			}
 		}
 	 
@@ -553,7 +730,7 @@ static JBBulletinManager *sharedJB=NULL;
 	return %orig;
 }
 %end
-
+%end
 
 %group ios10
 %hook NCNotificationLongLookViewController
@@ -631,11 +808,28 @@ static void screenChanged() {
 	}
 }
 
+
+
+static void func(const struct mach_header* mh, intptr_t vmaddr_slide){
+
+	
+	static BOOL hasRegBB=NO;
+	if (objc_getClass("BBBulletin")!=nil && !hasRegBB){
+		hasRegBB=1;
+		%init(bb);
+	}
+
+	
+}
+
+
 %ctor{
 	%init;
-	IOS10=[[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 10."].location!=NSNotFound;
+	IOS10=[[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 10."].location!=NSNotFound || [[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 11."].location!=NSNotFound || [[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 12."].location!=NSNotFound;
+	IOS11=[[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 11."].location!=NSNotFound || [[[NSProcessInfo processInfo] operatingSystemVersionString ] rangeOfString:@"Version 12."].location!=NSNotFound;
 	if (IOS10){
 		%init(ios10);
 	}
+	_dyld_register_func_for_add_image(func);
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)&screenChanged, CFSTR("com.apple.springboard.screenchanged"), NULL, 0);
 }
