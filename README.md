@@ -19,7 +19,7 @@ Show simple bulletin with custom sound:
 
 <strong>That's it!</strong>
 
-Works across iOS 5 to 9.3.3.
+Works across iOS 5 to 12.1.2
 
 All methods:
 -----------
