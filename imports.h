@@ -19,6 +19,7 @@
 -(id)imageScaledToSize:(CGSize)size cornerRadius:(CGFloat)corenrasd;
 -(id)_imageScaledToProportion:(CGFloat)proportion interpolationQuality:(int)quality;
 -(id)imageResizedTo:(CGSize)size preserveAspectRatio:(BOOL)preserve;
+-(id)sbf_resizeImageToSize:(CGSize)arg1 preservingAspectRatio:(BOOL)arg2 ;
 @end
 
 

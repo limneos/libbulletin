@@ -364,7 +364,12 @@ static JBBulletinManager *sharedJB=NULL;
 
 			}
 			else{
-				attachmentImage=[attachmentImage imageResizedTo:CGSizeMake(60,60) preserveAspectRatio: YES];
+				if (kCFCoreFoundationVersionNumber < 1556.00) {
+					attachmentImage=[attachmentImage imageResizedTo:CGSizeMake(60,60) preserveAspectRatio: YES];
+				}
+				else {
+					attachmentImage=[attachmentImage sbf_resizeImageToSize:CGSizeMake(60,60) preservingAspectRatio: YES];
+				}
 			}
 			
 			[attachmentImage retain];
