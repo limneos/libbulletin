@@ -368,7 +368,7 @@ static JBBulletinManager *sharedJB=NULL;
 			}
 			
 			[attachmentImage retain];
-			if (!IOS10){
+			if (IOS11){
 				BBAttachments *atts=[[objc_getClass("BBAttachments") alloc] init];
 				[atts setPrimaryType:1];
 				request.attachments=atts;
@@ -575,22 +575,22 @@ static JBBulletinManager *sharedJB=NULL;
 				if ([request respondsToSelector:@selector(setSource:)]){
 					[request setSource:16];
 				}
-				if ([request respondsToSelector:@selector(setIntent:)]){
+				else if ([request respondsToSelector:@selector(setIntent:)]){
 					[request setIntent:3];
 				}
-				if ([request respondsToSelector:@selector(setName:)]){
+				else if ([request respondsToSelector:@selector(setName:)]){
 					[request setName:[NSString stringWithFormat:@"SBWorkspaceRequest: Open \"%@\"",[self section]]];
 				}
-				if ([request respondsToSelector:@selector(setProcess:)]){
+				else if ([request respondsToSelector:@selector(setProcess:)]){
 					[request setProcess:NULL];
 				}
-				if ([request respondsToSelector:@selector(setDestinationApplication:)]){
+				else if ([request respondsToSelector:@selector(setDestinationApplication:)]){
 					[request setDestinationApplication:[[objc_getClass("SBApplicationController") sharedInstance] applicationWithBundleIdentifier:[self section]]];
 				}
-				if ([request respondsToSelector:@selector(setWantsBiometricPresentation:)]){
+				else if ([request respondsToSelector:@selector(setWantsBiometricPresentation:)]){
 					[request setWantsBiometricPresentation:YES];
 				}
-				if ([[objc_getClass("SBLockScreenManager") sharedInstance] respondsToSelector:@selector(unlockWithRequest:completion:)]){
+				else if ([[objc_getClass("SBLockScreenManager") sharedInstance] respondsToSelector:@selector(unlockWithRequest:completion:)]){
 					[[objc_getClass("SBLockScreenManager") sharedInstance] unlockWithRequest:request completion:^(BOOL completed){
 						if (completed){
 							[[UIApplication sharedApplication] launchApplicationWithIdentifier:[self section] suspended:NO];
@@ -689,7 +689,7 @@ static JBBulletinManager *sharedJB=NULL;
  
 	//for forcing custom bundle (icon) images on iOS 10
 	
-	if (!IOS10){
+	if (IOS11){
 		return %orig;
 	}
 
